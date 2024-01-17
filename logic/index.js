@@ -1,8 +1,98 @@
-const {listenForAnswer, SendMessage} = require('../api')
+const {listenForAnswer, SendMessage, addKnowledgeBase} = require('../api')
 const {getChatUid, setChatUid} = require('../mapper')
-const {summery} = require('../ai/api')
+const {summery, questionClassification} = require('../ai/api')
 
 class Logic {
+
+    async messagesChannel({event, context, client, say, message}) {
+        try {
+
+            // check if it's relevant question
+            if (message.subtype === 'message_deleted' || !message.text){
+                return
+            }
+
+            const botMentioned = message.text.includes(`<@${context.botUserId}>`);
+
+            if (botMentioned || !message.subtype || message.subtype !== 'bot_message') {
+
+                let isRelevant;
+                if (!botMentioned) {
+                    const classificationRes = await questionClassification(event.text)
+                    isRelevant = JSON.parse(classificationRes);
+                }
+
+
+                if (botMentioned || isRelevant) {
+
+                    const thread = await client.conversations.replies({
+                        channel: message.channel,
+                        ts: message.ts,
+                    });
+
+                    // Respond to the user in the thread
+                    const tempMessage = await client.chat.postMessage({
+                        token: process.env.BOT_TOKEN,
+                        channel: event.channel,
+                        thread_ts: thread.messages[0].ts,
+                        text: `Generating an answer :loading-2dots:`,
+                    });
+
+                    const text = event.text
+
+                    const res = await SendMessage({
+                        text,
+                        chatuid: getChatUid(event.channel)
+                    })
+
+                    setChatUid(event.channel, res.chatuid)
+                    const answer = await listenForAnswer(res.sid)
+
+                    await client.chat.delete({
+                        channel: event.channel,
+                        ts: tempMessage.ts,
+                    });
+
+                    await say({
+                        blocks: [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `${answer}`
+                                },
+                            },
+                            {
+                                "type": "actions",
+                                "elements": [
+                                    {
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "Create Service Record"
+                                        },
+                                        "action_id": "create_service_record_button"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": ":thumbsup:"
+                                        },
+                                        "action_id": "thumbs_up_button"
+                                    }
+                                ]
+                            }
+                        ],
+                        channel: event.channel,
+                        thread_ts: thread.messages[0].ts
+                    });
+                }
+
+            } } catch (error) {
+            console.error(error);
+        }
+    }
 
     async appMentioned({event, context, client, say}) {
         try {
@@ -84,6 +174,31 @@ class Logic {
 
             await ack()
 
+            const result = await client.views.open({
+                trigger_id: body.trigger_id,
+                view: {
+                    type: 'modal',
+                    callback_id: 'submit_summery',
+                    title: {
+                        type: 'plain_text',
+                        text: 'Chat Summery',
+                    },
+                    blocks: [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Generating an summery :loading-2dots:"
+                            }
+                        }
+                    ],
+                    submit: {
+                        type: 'plain_text',
+                        text: 'Submit',
+                    },
+                },
+            });
+
             // Fetch the channel history
             const history = await client.conversations.history({
                 channel: command.channel_id,
@@ -99,8 +214,12 @@ class Logic {
             const summeryResponse = await summery(historyParsed)
 
             try {
-                const result = await client.views.open({
-                    trigger_id: body.trigger_id,
+
+
+                const viewId = result.view.id;
+
+                await client.views.update({
+                    view_id: viewId,
                     view: {
                         type: 'modal',
                         callback_id: 'submit_summery',
@@ -131,31 +250,11 @@ class Logic {
                     },
                 });
 
+
                 console.log(result);
             } catch (error) {
                 console.error(error);
             }
-
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-    async solve({command, ack, client}) {
-        await ack('solved!');
-
-        try {
-            // Fetch the channel history
-            const history = await client.conversations.history({
-                channel: command.channel_id,
-            });
-
-            // Process the history as needed
-            console.log(history);
-
-            // Your logic to solve the issue based on the history
-            // You can access the messages using history.messages
-            // For example, history.messages[0].text to get the text of the latest message
 
         } catch (error) {
             console.error(error);
@@ -177,16 +276,38 @@ class Logic {
     async submitSummery({ack, body, view, client}) {
         await ack();
 
-        const editedText = view.state.values.edited_text_block.edited_text_input.value;
+        const summeryKB = view.state.values.edited_text_block.edited_text_input.value;
 
-        // Process the edited text as needed
-        console.log('Edited Text:', editedText);
 
-        // You can now update your app's state or send a response to the user
-        await client.chat.postMessage({
-            channel: body.user.id,
-            text: `Text updated: ${editedText}`,
+        const thankYouView = {
+            type: 'modal',
+            callback_id: 'submit_summery', // Ensure this matches the callback_id of your initial view
+            title: {
+                type: 'plain_text',
+                text: 'Collaboration Boost',
+            },
+            blocks: [
+                {
+                    type: 'section',
+                    text: {
+                        type: 'mrkdwn',
+                        text: '*Thanks for sharing! 🚀 Your knowledge is now part of our collaborative journey, boosting teamwork and innovation. 👏*',
+                    },
+                },
+            ],
+        };
+
+        const res = await addKnowledgeBase(summeryKB)
+
+
+        // Update the original view with the thank you message
+        await client.views.open({
+            trigger_id: body.trigger_id,
+            view: thankYouView,
         });
+
+
+        console.log(res)
     }
 }
 

@@ -15,7 +15,7 @@ class Api {
         };
 
         try {
-            const res = await axios.post(`${this.url}/chat`, { text, chatuid, stream}, config);
+            const res = await axios.post(`${this.url}/api/chat`, { text, chatuid, stream}, config);
             return res.data;
         } catch (err) {
             console.error('POST Error:', err.message);
@@ -26,7 +26,7 @@ class Api {
         return new Promise((resolve, reject) => {
             let messages = '';
 
-            const eventSource = new EventSource(`${this.url}/stream/${sid}`);
+            const eventSource = new EventSource(`${this.url}/api/stream/${sid}`);
 
             eventSource.onmessage = event => {
                 const message = JSON.parse(event.data);
@@ -50,12 +50,26 @@ class Api {
 
     //TODO - should send post request to sysai server
     createServiceRecord = async () => {
+
     }
+    addKnowledgeBase = async (summeryKB) => {
+        const kb = {
+            text: summeryKB
+        }
 
-    //TODO - should send post request to sysai server
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Cookie': process.env.SYS_AI_COOKIE,
+            },
+        };
 
-    addKnowledgeBase = async () => {
-        // should send post request to sysai server
+        try {
+            const res = await axios.post(`${this.url}/learn`, kb, config);
+            return res.data;
+        } catch (err) {
+            console.error('POST Error:', err.message);
+        }
     }
 }
 

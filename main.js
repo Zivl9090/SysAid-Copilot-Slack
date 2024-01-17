@@ -1,4 +1,4 @@
-const { appMentioned, memberJoinedChannel, learn, solve, createServiceRecord, thumbsUp, submitSummery } = require('./logic')
+const { appMentioned, memberJoinedChannel, learn, solve, createServiceRecord, thumbsUp, submitSummery, messagesChannel } = require('./logic')
 
 const { App } = require('@slack/bolt');
 
@@ -9,14 +9,10 @@ const app = new App({
 });
 
 // Events
-app.event('app_mention', appMentioned);
-
 app.event('member_joined_channel', memberJoinedChannel);
 
 
 // Commands
-app.command('/solve', solve);
-
 app.command('/learn', learn);
 
 
@@ -27,6 +23,9 @@ app.action('thumbs_up_button', thumbsUp);
 
 // Views
 app.view('submit_summery', submitSummery);
+
+// Messages
+app.message(messagesChannel);
 
 
 (async () => {

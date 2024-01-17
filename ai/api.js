@@ -1,5 +1,5 @@
 const OpenAI  = require('openai');
-const { summeryPrompt } = require("./constant")
+const { summeryPrompt, classificationPrompt } = require("./constant")
 
 
 class AI {
@@ -16,7 +16,20 @@ class AI {
                 { role: "system", content: summeryPrompt },
                 { role: "user", content: history}
             ],
-            model: "gpt-3.5-turbo",
+            model: "gpt-4",
+        });
+
+        return completion.choices[0].message.content;
+    }
+
+    questionClassification = async(message) => {
+
+        const completion = await this.model.chat.completions.create({
+            messages: [
+                { role: "system", content: classificationPrompt },
+                { role: "user", content: message}
+            ],
+            model: "gpt-4",
         });
 
         return completion.choices[0].message.content;
