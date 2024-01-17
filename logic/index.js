@@ -188,7 +188,7 @@ class Logic {
                             "type": "section",
                             "text": {
                                 "type": "plain_text",
-                                "text": "Generating an summery :loading-2dots:"
+                                "text": "Generating a summery :loading-2dots:"
                             }
                         }
                     ],
