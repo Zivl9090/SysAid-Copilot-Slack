@@ -1,4 +1,4 @@
-const {listenForAnswer, SendMessage, addKnowledgeBase} = require('../api')
+const {listenForAnswer, SendMessage, addKnowledgeBase, createServiceRecord} = require('../api')
 const {getChatUid, setChatUid} = require('../mapper')
 const {summery, questionClassification} = require('../ai/api')
 
@@ -261,11 +261,38 @@ class Logic {
         }
     }
 
-    async createServiceRecord({say, ack}) {
-        ack()
+    async createServiceRecord({say, ack, action, client, body, payload}) {
+        await ack();
+
+        const { channel: { id: channelId } } = body;
+        
+        const tempMessage = await client.chat.postMessage({
+            token: process.env.BOT_TOKEN,
+            channel: channelId,
+            thread_ts: body.message.thread_ts,
+            text: `Processing :loading-2dots:`,
+        });
+        const chatuid = getChatUid(channelId);
+        const srId = await createServiceRecord(chatuid);
+
+        await client.chat.update({
+            token: process.env.BOT_TOKEN,
+            ts: tempMessage.ts,
+            channel: channelId,
+            blocks: [
+                {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": `Service record <https://rndeueodhfa01.qa.sysaidit.com/servicePortal/SRview/${srId}|#${srId}> has been successfully created!`,
+                    }
+                  }
+            ]
+        });
+
+
         //TODO: add a logic that creating the service record
         //TODO: change the button to a link for the newly created service record
-        await say('Initiating the service record creation process...');
     };
 
     async thumbsUp({say, ack}) {
