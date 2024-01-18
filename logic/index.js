@@ -19,7 +19,11 @@ class Logic {
                 let isRelevant;
                 if (!botMentioned) {
                     const classificationRes = await questionClassification(event.text)
-                    isRelevant = JSON.parse(classificationRes);
+                    try {
+                        isRelevant = JSON.parse(classificationRes);
+                    } catch (err){
+                        isRelevant = false
+                    }
                 }
 
 

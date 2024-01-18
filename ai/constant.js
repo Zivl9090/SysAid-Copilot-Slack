@@ -1,4 +1,4 @@
-const summeryPrompt = `Generate a focused summary of the conversation in a question-answer format, emphasizing relevant information and excluding day-to-day talk. The summary should conclude with a single question and answer on how the problem was fixed, suitable for addition to the knowledge base.
+const summeryPrompt = `Generate a focused summary of the conversation in a question-answer format, emphasizing relevant information and excluding day-to-day talk. The summary should conclude with a single problem and resolution on how the problem was fixed, suitable for addition to the knowledge base.
 
 Example Conversation:
 User: How can I resolve the connectivity issue with my Wi-Fi?
@@ -12,11 +12,11 @@ Support: Did you try forgetting the Wi-Fi network on your device and then reconn
 User: That worked! I'm now connected. Thank you!
 Support: You're welcome! If you encounter any further issues, feel free to reach out.
 
-Q: How was the user's Wi-Fi connectivity issue resolved?
-A: The problem was fixed by having the user forget the Wi-Fi network on their device and then reconnecting.`
-const classificationPrompt = `Certainly! Here's a revised prompt to ensure that the language model responds with "false" only when it's not a question:
-
-"Your virtual assistant specializes in classifying questions related to technology. It will respond with 'true' if the input is a tech-related question and 'false' if it's not a question or if the question is not related to technology. Please frame your question accordingly.
+Summery: 
+Problem: How was the user's Wi-Fi connectivity issue resolved?
+Resolution: The problem was fixed by having the user forget the Wi-Fi network on their device and then reconnecting.`
+const classificationPrompt = `
+"Your virtual assistant specializes in classifying questions related to technology. It will respond with 'true' if the input is a tech-related question and 'false' if it's not a question or if the question is not related to technology. You must response in true or false response, if you are not sure response false.
 
 For example:
 
